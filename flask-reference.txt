@@ -1,0 +1,30 @@
+ #create yamls  for bellow 
+ Yamls located at https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/deployment/resource-providers/standalone/kubernetes/#common-cluster-resource-definitions
+ 
+ # Configuration and service definition
+     kubectl create -f flink-configuration-configmap.yaml
+     kubectl create -f jobmanager-service.yaml
+     kubectl create -f jobmanager-rest-service.yaml
+ #Create the deployments for the cluster
+     kubectl create -f jobmanager-session-deployment-non-ha.yaml
+     kubectl create -f taskmanager-session-deployment.yaml  
+    
+    
+  #Next, we set up a port forward to access the Flink UI and submit jobs:
+
+    Run kubectl port-forward ${flink-jobmanager-pod} 8081:8081 to forward your jobmanager’s web ui port to local 8081. #You will need to oopen a new terminal to proceed 
+    To externally access app  , example AWS  , use <public ip>:30081 #30081 its the node port defined on  jobmanager-rest-service.yaml
+    Navigate to http://localhost:8081 in your browser.
+    Moreover, you could use the following command below to submit jobs to the cluster:
+    $ ./bin/flink run -m localhost:8081 ./examples/streaming/TopSpeedWindowing.jar
+    #reference cmdfrom aws 
+    #/home/ubuntu/flink-1.14.3/bin/flink run -m localhost:8081 /home/ubuntu/flink-1.14.3/examples/streaming/WordCount.jar
+    
+    
+  #You can tear down the cluster using the following commands:
+
+    kubectl delete -f jobmanager-service.yaml
+    kubectl delete -f jobmanager-rest-service.yaml
+    kubectl delete -f flink-configuration-configmap.yaml
+    kubectl delete -f taskmanager-session-deployment.yaml
+    kubectl delete -f jobmanager-session-deployment-non-ha.yaml
