@@ -1,4 +1,22 @@
-this sample was run on AWS EC2 
+https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/deployment/resource-providers/native_kubernetes/
+
+
+The Session Mode can be executed in two modes:
+
+detached mode (default): The kubernetes-session.sh deploys the Flink cluster on Kubernetes and then terminates.
+
+attached mode (-Dexecution.attached=true): The kubernetes-session.sh stays alive and allows entering commands to control the running Flink cluster. For example, stop stops the running Session cluster. Type help to list all supported commands.
+
+In order to re-attach to a running Session cluster with the cluster id my-first-flink-cluster use the following command:
+
+$ ./bin/kubernetes-session.sh \
+    -Dkubernetes.cluster-id=my-first-flink-cluster \
+    -Dexecution.attached=true
+You can override configurations set in conf/flink-conf.yaml by passing key-value pairs -Dkey=value to bin/kubernetes-session.sh.
+
+
+
+*********this sample was run on AWS EC2 **********
 
 instance 
 
