@@ -1,0 +1,47 @@
+Application Mode #
+For high-level intuition behind the application mode, please refer to the deployment mode overview.
+The Application Mode requires that the user code is bundled together with the Flink image because it runs the user code’s main() method on the cluster. The Application Mode makes sure that all Flink components are properly cleaned up after the termination of the application.
+
+The Flink community provides a base Docker image which can be used to bundle the user code:
+
+  #log to docker 
+  sudo docker login 
+  
+  #Dockerfile
+  FROM flink
+  RUN mkdir -p $FLINK_HOME/usrlib
+  COPY TopSpeedWindowing.jar $FLINK_HOME/usrlib/my-flink-job.jar
+
+  #build image
+  sudo docker build -t application-sample .
+  
+  #tag image 
+  sudo docker tag application-sample luisgon/application-sample:latest
+
+  #publish image 
+  sudo docker push  luigon/application-sample:latest
+  
+  #run flink  
+  flink-1.14.3/bin/flink run-application --target kubernetes-application -Dkubernetes.cluster-id=my-first-application-cluster -Dkubernetes.container.image=luisgon/application-sample local:///opt/flink/usrlib/my-flink-job.jar
+
+  # created objects 
+  
+  ubuntu@ip-172-31-27-47:~$ kubectl get all
+  NAME                                                READY   STATUS    RESTARTS   AGE
+  pod/my-first-application-cluster-6889548496-29rbr   1/1     Running   0          7m56s
+  pod/my-first-application-cluster-taskmanager-1-1    1/1     Running   0          7m27s
+
+  NAME                                        TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)             AGE
+  service/kubernetes                          ClusterIP      10.96.0.1      <none>        443/TCP             166d
+  service/my-first-application-cluster        ClusterIP      None           <none>        6123/TCP,6124/TCP   7m55s
+  service/my-first-application-cluster-rest   LoadBalancer   10.97.161.43   <pending>     8081:31250/TCP      7m55s
+
+  NAME                                           READY   UP-TO-DATE   AVAILABLE   AGE
+  deployment.apps/my-first-application-cluster   1/1     1            1           7m56s
+
+  NAME                                                      DESIRED   CURRENT   READY   AGE
+  replicaset.apps/my-first-application-cluster-6889548496   1         1         1       7m56s
+  
+  #adding external ip to my-first-application-cluster-rest
+  
+  
