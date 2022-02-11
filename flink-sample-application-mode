@@ -44,4 +44,656 @@ The Flink community provides a base Docker image which can be used to bundle the
   
   #adding external ip to my-first-application-cluster-rest
   
+  kubectl get svc my-first-application-cluster-rest -oyaml > my-first-application-cluster-rest-application.yaml
+  
+  kubectl delete svc my-first-application-cluster-rest
+  
+  kubectl create -f  my-first-application-cluster-rest-application.yaml
+  
+  
+my-first-application-cluster-6889548496-khcnc
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2022-02-11T04:38:39Z"
+  generateName: my-first-application-cluster-6889548496-
+  labels:
+    app: my-first-application-cluster
+    component: jobmanager
+    pod-template-hash: "6889548496"
+    type: flink-native-kubernetes
+  name: my-first-application-cluster-6889548496-khcnc
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: ReplicaSet
+    name: my-first-application-cluster-6889548496
+    uid: b3c3e8c4-08c5-47f9-9bf2-5ec09c54fd8e
+  resourceVersion: "4789956"
+  uid: da6ea847-2104-46c9-a1f6-be5dc83e913c
+spec:
+  containers:
+  - args:
+    - bash
+    - -c
+    - kubernetes-jobmanager.sh kubernetes-application
+    command:
+    - /docker-entrypoint.sh
+    env:
+    - name: _POD_IP_ADDRESS
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: status.podIP
+    image: luisgon/application-sample
+    imagePullPolicy: IfNotPresent
+    name: flink-main-container
+    ports:
+    - containerPort: 8081
+      name: rest
+      protocol: TCP
+    - containerPort: 6123
+      name: jobmanager-rpc
+      protocol: TCP
+    - containerPort: 6124
+      name: blobserver
+      protocol: TCP
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1600Mi
+      requests:
+        cpu: "1"
+        memory: 1600Mi
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /opt/flink/conf
+      name: flink-config-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-wtvsn
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: ip-172-31-85-47
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: logback-console.xml
+        path: logback-console.xml
+      - key: log4j-console.properties
+        path: log4j-console.properties
+      - key: flink-conf.yaml
+        path: flink-conf.yaml
+      name: flink-config-my-first-application-cluster
+    name: flink-config-volume
+  - name: kube-api-access-wtvsn
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T04:38:39Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T04:38:41Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T04:38:41Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T04:38:39Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://71525ab9fd84cab3b31e981261bc2f5f3d053eacdf129131275425b29d1b2d19
+    image: luisgon/application-sample:latest
+    imageID: docker-pullable://luisgon/application-sample@sha256:a4586f22d43f2cb7da4a6380da50243519a6605330c83f5ed1de0b9d8e57161a
+    lastState: {}
+    name: flink-main-container
+    ready: true
+    restartCount: 0
+    started: true
+    state:
+      running:
+        startedAt: "2022-02-11T04:38:40Z"
+  hostIP: 172.31.85.47
+  phase: Running
+  podIP: 10.44.0.1
+  podIPs:
+  - ip: 10.44.0.1
+  qosClass: Guaranteed
+  startTime: "2022-02-11T04:38:39Z"
+
+
+
+my-first-application-cluster-taskmanager
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2022-02-11T04:38:51Z"
+  labels:
+    app: my-first-application-cluster
+    component: taskmanager
+    type: flink-native-kubernetes
+  name: my-first-application-cluster-taskmanager-1-1
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Deployment
+    name: my-first-application-cluster
+    uid: e37cb3f6-977f-4a3f-80d0-adc83037b8f8
+  resourceVersion: "4789985"
+  uid: cdcda405-21e2-4bab-b030-9cbe5a09be1e
+spec:
+  containers:
+  - args:
+    - bash
+    - -c
+    - kubernetes-taskmanager.sh -Djobmanager.memory.jvm-overhead.min='201326592b'
+      -Dpipeline.classpaths='file:usrlib/my-flink-job.jar' -Dtaskmanager.resource-id='my-first-application-cluster-taskmanager-1-1'
+      -Djobmanager.memory.off-heap.size='134217728b' -Dexecution.target='embedded'
+      -Dweb.tmpdir='/tmp/flink-web-5a5697ed-c6b3-41a2-ac24-a7cefb5f4c6f' -Dpipeline.jars='file:/opt/flink/usrlib/my-flink-job.jar'
+      -Djobmanager.memory.jvm-metaspace.size='268435456b' -Djobmanager.memory.heap.size='1073741824b'
+      -Djobmanager.memory.jvm-overhead.max='201326592b' -D taskmanager.memory.network.min=134217730b
+      -D taskmanager.cpu.cores=1.0 -D taskmanager.memory.task.off-heap.size=0b -D
+      taskmanager.memory.jvm-metaspace.size=268435456b -D external-resources=none
+      -D taskmanager.memory.jvm-overhead.min=201326592b -D taskmanager.memory.framework.off-heap.size=134217728b
+      -D taskmanager.memory.network.max=134217730b -D taskmanager.memory.framework.heap.size=134217728b
+      -D taskmanager.memory.managed.size=536870920b -D taskmanager.memory.task.heap.size=402653174b
+      -D taskmanager.numberOfTaskSlots=1 -D taskmanager.memory.jvm-overhead.max=201326592b
+    command:
+    - /docker-entrypoint.sh
+    env:
+    - name: FLINK_TM_JVM_MEM_OPTS
+      value: -Xmx536870902 -Xms536870902 -XX:MaxDirectMemorySize=268435458 -XX:MaxMetaspaceSize=268435456
+    image: luisgon/application-sample
+    imagePullPolicy: IfNotPresent
+    name: flink-main-container
+    ports:
+    - containerPort: 6122
+      name: taskmanager-rpc
+      protocol: TCP
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1728Mi
+      requests:
+        cpu: "1"
+        memory: 1728Mi
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /opt/flink/conf
+      name: flink-config-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-8gg2t
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: ip-172-31-85-47
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Never
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: logback-console.xml
+        path: logback-console.xml
+      - key: log4j-console.properties
+        path: log4j-console.properties
+      - key: flink-conf.yaml
+        path: flink-conf.yaml
+      name: flink-config-my-first-application-cluster
+    name: flink-config-volume
+  - name: kube-api-access-8gg2t
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T04:38:51Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T04:38:53Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T04:38:53Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T04:38:51Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://31c83f69e6d1a46c761adb0fd1ff47e7e8c1a69c88179170b8e2c03b732b6f37
+    image: luisgon/application-sample:latest
+    imageID: docker-pullable://luisgon/application-sample@sha256:a4586f22d43f2cb7da4a6380da50243519a6605330c83f5ed1de0b9d8e57161a
+    lastState: {}
+    name: flink-main-container
+    ready: true
+    restartCount: 0
+    started: true
+    state:
+      running:
+        startedAt: "2022-02-11T04:38:52Z"
+  hostIP: 172.31.85.47
+  phase: Running
+  podIP: 10.44.0.2
+  podIPs:
+  - ip: 10.44.0.2
+  qosClass: Guaranteed
+  startTime: "2022-02-11T04:38:51Z"
+  
+  
+ my-first-application-cluster
+ 
+ 
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: "2022-02-11T04:38:39Z"
+  labels:
+    app: my-first-application-cluster
+    type: flink-native-kubernetes
+  name: my-first-application-cluster
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Deployment
+    name: my-first-application-cluster
+    uid: e37cb3f6-977f-4a3f-80d0-adc83037b8f8
+  resourceVersion: "4789940"
+  uid: c04929e2-273a-48e0-977d-40a8501e0460
+spec:
+  clusterIP: None
+  clusterIPs:
+  - None
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: jobmanager-rpc
+    port: 6123
+    protocol: TCP
+    targetPort: 6123
+  - name: blobserver
+    port: 6124
+    protocol: TCP
+    targetPort: 6124
+  selector:
+    app: my-first-application-cluster
+    component: jobmanager
+    type: flink-native-kubernetes
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
+  
+  
+  
+ 
+  my-first-application-cluster-rest
+  
+  
+  
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: "2022-02-11T04:44:59Z"
+  labels:
+    app: my-first-application-cluster
+    type: flink-native-kubernetes
+  name: my-first-application-cluster-rest
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Deployment
+    name: my-first-application-cluster
+    uid: e37cb3f6-977f-4a3f-80d0-adc83037b8f8
+  resourceVersion: "4790471"
+  uid: dadf5d01-d0ad-4adb-b460-57ae70159520
+spec:
+  allocateLoadBalancerNodePorts: true
+  clusterIP: 10.99.98.62
+  clusterIPs:
+  - 10.99.98.62
+  externalIPs:
+  - 172.31.27.47
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: rest
+    nodePort: 30728
+    port: 8081
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: my-first-application-cluster
+    component: jobmanager
+    type: flink-native-kubernetes
+  sessionAffinity: None
+  type: LoadBalancer
+status:
+  loadBalancer: {}
+  
+  
+  
+  deployment my-first-application-cluster 
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  creationTimestamp: "2022-02-11T04:38:39Z"
+  generation: 1
+  labels:
+    app: my-first-application-cluster
+    component: jobmanager
+    type: flink-native-kubernetes
+  name: my-first-application-cluster
+  namespace: default
+  resourceVersion: "4789962"
+  uid: e37cb3f6-977f-4a3f-80d0-adc83037b8f8
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: my-first-application-cluster
+      component: jobmanager
+      type: flink-native-kubernetes
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: my-first-application-cluster
+        component: jobmanager
+        type: flink-native-kubernetes
+    spec:
+      containers:
+      - args:
+        - bash
+        - -c
+        - kubernetes-jobmanager.sh kubernetes-application
+        command:
+        - /docker-entrypoint.sh
+        env:
+        - name: _POD_IP_ADDRESS
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        image: luisgon/application-sample
+        imagePullPolicy: IfNotPresent
+        name: flink-main-container
+        ports:
+        - containerPort: 8081
+          name: rest
+          protocol: TCP
+        - containerPort: 6123
+          name: jobmanager-rpc
+          protocol: TCP
+        - containerPort: 6124
+          name: blobserver
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1600Mi
+          requests:
+            cpu: "1"
+            memory: 1600Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/flink/conf
+          name: flink-config-volume
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: logback-console.xml
+            path: logback-console.xml
+          - key: log4j-console.properties
+            path: log4j-console.properties
+          - key: flink-conf.yaml
+            path: flink-conf.yaml
+          name: flink-config-my-first-application-cluster
+        name: flink-config-volume
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2022-02-11T04:38:41Z"
+    lastUpdateTime: "2022-02-11T04:38:41Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2022-02-11T04:38:39Z"
+    lastUpdateTime: "2022-02-11T04:38:41Z"
+    message: ReplicaSet "my-first-application-cluster-6889548496" has successfully
+      progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 1
+  readyReplicas: 1
+  replicas: 1
+  updatedReplicas: 1
+  
+  
+ 
+my-first-application-cluster-6889548496
+
+
+
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  annotations:
+    deployment.kubernetes.io/desired-replicas: "1"
+    deployment.kubernetes.io/max-replicas: "2"
+    deployment.kubernetes.io/revision: "1"
+  creationTimestamp: "2022-02-11T04:38:39Z"
+  generation: 1
+  labels:
+    app: my-first-application-cluster
+    component: jobmanager
+    pod-template-hash: "6889548496"
+    type: flink-native-kubernetes
+  name: my-first-application-cluster-6889548496
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Deployment
+    name: my-first-application-cluster
+    uid: e37cb3f6-977f-4a3f-80d0-adc83037b8f8
+  resourceVersion: "4789961"
+  uid: b3c3e8c4-08c5-47f9-9bf2-5ec09c54fd8e
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-first-application-cluster
+      component: jobmanager
+      pod-template-hash: "6889548496"
+      type: flink-native-kubernetes
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: my-first-application-cluster
+        component: jobmanager
+        pod-template-hash: "6889548496"
+        type: flink-native-kubernetes
+    spec:
+      containers:
+      - args:
+        - bash
+        - -c
+        - kubernetes-jobmanager.sh kubernetes-application
+        command:
+        - /docker-entrypoint.sh
+        env:
+        - name: _POD_IP_ADDRESS
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        image: luisgon/application-sample
+        imagePullPolicy: IfNotPresent
+        name: flink-main-container
+        ports:
+        - containerPort: 8081
+          name: rest
+          protocol: TCP
+        - containerPort: 6123
+          name: jobmanager-rpc
+          protocol: TCP
+        - containerPort: 6124
+          name: blobserver
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1600Mi
+          requests:
+            cpu: "1"
+            memory: 1600Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/flink/conf
+          name: flink-config-volume
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: logback-console.xml
+            path: logback-console.xml
+          - key: log4j-console.properties
+            path: log4j-console.properties
+          - key: flink-conf.yaml
+            path: flink-conf.yaml
+          name: flink-config-my-first-application-cluster
+        name: flink-config-volume
+status:
+  availableReplicas: 1
+  fullyLabeledReplicas: 1
+  observedGeneration: 1
+  readyReplicas: 1
+  replicas: 1
+
   
