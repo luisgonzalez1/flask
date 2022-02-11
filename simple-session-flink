@@ -1,0 +1,575 @@
+this sample was run on AWS EC2 
+
+instance 
+
+master t2.medium
+
+worker t2.2xlarge
+
+The Getting Started section assumes a running Kubernetes cluster fulfilling the following requirements:
+
+Kubernetes >= 1.9.
+KubeConfig, which has access to list, create, delete pods and services, configurable via ~/.kube/config. You can verify permissions by running kubectl auth can-i <list|create|edit|delete> pods.
+Enabled Kubernetes DNS.
+default service account with RBAC permissions to create, delete pods.
+
+   kubectl create clusterrolebinding flink-role-binding-default --clusterrole=edit --serviceaccount=default:default
+   kubectl create serviceaccount flink-service-account
+   kubectl create clusterrolebinding flink-role-binding-flink --clusterrole=edit --serviceaccount=default:flink-service-account
+
+If you have problems setting up a Kubernetes cluster, then take a look at how to setup a Kubernetes cluster.
+
+Starting a Flink Session on Kubernetes #
+Once you have your Kubernetes cluster running and kubectl is configured to point to it, you can launch a Flink cluster in Session Mode via
+
+# (1) Start Kubernetes session
+$ ./bin/kubernetes-session.sh -Dkubernetes.cluster-id=my-first-flink-cluster
+  
+    #flink-1.14.3/bin/kubernetes-session.sh -Dkubernetes.cluster-id=my-first-flink-cluster
+  
+    #after deploying cluster service Loadbalancer external ip will be empty
+    
+    ubuntu@ip-172-31-27-47:~$ kubectl get svc
+    NAME                          TYPE           CLUSTER-IP       EXTERNAL-IP    PORT(S)             AGE
+    my-first-flink-cluster-rest   LoadBalancer   10.108.241.237   <pending>   8081:30501/TCP      28m
+    
+    #get copy of service manifest 
+    
+    kubectl get svc my-first-flink-cluster-rest  -oyaml > my-first-flink-cluster-rest.yaml
+    
+    #added  aws  Private IPv4 addresses on manifest
+    
+    externalIPs:
+    - 172.31.27.47
+    
+    #delete service and recreate
+
+    kubectl delete svc my-first-flink-cluster-rest
+    
+    kubectl create -f  my-first-flink-cluster-rest
+    
+    to test that everything its working  
+     
+     curl -kv <Private IPv4 addresses>:8081
+     curl -kv 172.31.27.47:8081
+
+    to access ui 
+     http://<Public IPv4 address>:<nodeport>/
+     http://52.91.246.108:30501/
+     
+# (2) Submit example job
+$ ./bin/flink run \
+    --target kubernetes-session \
+    -Dkubernetes.cluster-id=my-first-flink-cluster \
+    ./examples/streaming/TopSpeedWindowing.jar
+    #bash flink-1.14.3/bin/flink run     --target kubernetes-session     -Dkubernetes.cluster-id=my-first-flink-cluster     /home/ubuntu/flink-1.14.3/examples/streaming/WordCount.jar
+   
+
+# (3) Stop Kubernetes session by deleting cluster deployment
+$ kubectl delete deployment/my-first-flink-cluster
+
+#Final Objects created  
+
+ NAME                                          READY   STATUS    RESTARTS   AGE
+pod/my-first-flink-cluster-6f8589cf4c-98c29   1/1     Running   0          50m
+
+NAME                                  TYPE           CLUSTER-IP       EXTERNAL-IP    PORT(S)             AGE
+service/kubernetes                    ClusterIP      10.96.0.1        <none>         443/TCP             166d
+service/my-first-flink-cluster        ClusterIP      None             <none>         6123/TCP,6124/TCP   50m
+service/my-first-flink-cluster-rest   LoadBalancer   10.108.241.237   172.31.27.47   8081:30501/TCP      41m
+
+NAME                                     READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/my-first-flink-cluster   1/1     1            1           50m
+
+NAME                                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/my-first-flink-cluster-6f8589cf4c   1         1         1       50m
+
+Manifest files 
+
+pod/my-first-flink-cluster-6f8589cf4c-98c29
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2022-02-11T02:19:18Z"
+  generateName: my-first-flink-cluster-6f8589cf4c-
+  labels:
+    app: my-first-flink-cluster
+    component: jobmanager
+    pod-template-hash: 6f8589cf4c
+    type: flink-native-kubernetes
+  name: my-first-flink-cluster-6f8589cf4c-98c29
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: ReplicaSet
+    name: my-first-flink-cluster-6f8589cf4c
+    uid: 6cbdd3aa-ed2b-403e-b1e3-59291810ad3c
+  resourceVersion: "4778771"
+  uid: 05417b5f-34bb-48f1-b1c9-f89073bfad70
+spec:
+  containers:
+  - args:
+    - bash
+    - -c
+    - kubernetes-jobmanager.sh kubernetes-session
+    command:
+    - /docker-entrypoint.sh
+    env:
+    - name: _POD_IP_ADDRESS
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: status.podIP
+    image: apache/flink:1.14.3-scala_2.11
+    imagePullPolicy: IfNotPresent
+    name: flink-main-container
+    ports:
+    - containerPort: 8081
+      name: rest
+      protocol: TCP
+    - containerPort: 6123
+      name: jobmanager-rpc
+      protocol: TCP
+    - containerPort: 6124
+      name: blobserver
+      protocol: TCP
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1600Mi
+      requests:
+        cpu: "1"
+        memory: 1600Mi
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /opt/flink/conf
+      name: flink-config-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-6ctl4
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: ip-172-31-85-47
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: logback-console.xml
+        path: logback-console.xml
+      - key: log4j-console.properties
+        path: log4j-console.properties
+      - key: flink-conf.yaml
+        path: flink-conf.yaml
+      name: flink-config-my-first-flink-cluster
+    name: flink-config-volume
+  - name: kube-api-access-6ctl4
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T02:19:18Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T02:19:20Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T02:19:20Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2022-02-11T02:19:18Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://f9f4be26bfb359fc57c741835a6592d72e97710d446199290b19e8bed08ea3dd
+    image: apache/flink:1.14.3-scala_2.11
+    imageID: docker-pullable://apache/flink@sha256:6e1cf9edbdea3ca57aeba383455eed43b556430f27c1dcf8eeec5c7df9e52f26
+    lastState: {}
+    name: flink-main-container
+    ready: true
+    restartCount: 0
+    started: true
+    state:
+      running:
+        startedAt: "2022-02-11T02:19:20Z"
+  hostIP: 172.31.85.47
+  phase: Running
+  podIP: 10.44.0.1
+  podIPs:
+  - ip: 10.44.0.1
+  qosClass: Guaranteed
+  startTime: "2022-02-11T02:19:18Z"
+  
+
+my-first-flink-cluster
+
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: "2022-02-11T02:19:19Z"
+  labels:
+    app: my-first-flink-cluster
+    type: flink-native-kubernetes
+  name: my-first-flink-cluster
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Deployment
+    name: my-first-flink-cluster
+    uid: 8045ea6b-6dce-4e9d-b6fc-b0405125b715
+  resourceVersion: "4778757"
+  uid: 1cb71881-ee50-4362-be85-d605ebc9839a
+spec:
+  clusterIP: None
+  clusterIPs:
+  - None
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: jobmanager-rpc
+    port: 6123
+    protocol: TCP
+    targetPort: 6123
+  - name: blobserver
+    port: 6124
+    protocol: TCP
+    targetPort: 6124
+  selector:
+    app: my-first-flink-cluster
+    component: jobmanager
+    type: flink-native-kubernetes
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
+  
+  
+  
+  
+my-first-flink-cluster-rest
+  
+  
+  
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: "2022-02-11T02:28:10Z"
+  labels:
+    app: my-first-flink-cluster
+    type: flink-native-kubernetes
+  name: my-first-flink-cluster-rest
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Deployment
+    name: my-first-flink-cluster
+    uid: 8045ea6b-6dce-4e9d-b6fc-b0405125b715
+  resourceVersion: "4779483"
+  uid: b49ae3a1-32cf-4d16-9d94-357a8b9d71a6
+spec:
+  allocateLoadBalancerNodePorts: true
+  clusterIP: 10.108.241.237
+  clusterIPs:
+  - 10.108.241.237
+  externalIPs:
+  - 172.31.27.47
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: rest
+    nodePort: 30501
+    port: 8081
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: my-first-flink-cluster
+    component: jobmanager
+    type: flink-native-kubernetes
+  sessionAffinity: None
+  type: LoadBalancer
+status:
+  loadBalancer: {}
+  
+  
+  
+  
+my-first-flink-cluster
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  creationTimestamp: "2022-02-11T02:19:18Z"
+  generation: 1
+  labels:
+    app: my-first-flink-cluster
+    component: jobmanager
+    type: flink-native-kubernetes
+  name: my-first-flink-cluster
+  namespace: default
+  resourceVersion: "4778777"
+  uid: 8045ea6b-6dce-4e9d-b6fc-b0405125b715
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: my-first-flink-cluster
+      component: jobmanager
+      type: flink-native-kubernetes
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: my-first-flink-cluster
+        component: jobmanager
+        type: flink-native-kubernetes
+    spec:
+      containers:
+      - args:
+        - bash
+        - -c
+        - kubernetes-jobmanager.sh kubernetes-session
+        command:
+        - /docker-entrypoint.sh
+        env:
+        - name: _POD_IP_ADDRESS
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        image: apache/flink:1.14.3-scala_2.11
+        imagePullPolicy: IfNotPresent
+        name: flink-main-container
+        ports:
+        - containerPort: 8081
+          name: rest
+          protocol: TCP
+        - containerPort: 6123
+          name: jobmanager-rpc
+          protocol: TCP
+        - containerPort: 6124
+          name: blobserver
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1600Mi
+          requests:
+            cpu: "1"
+            memory: 1600Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/flink/conf
+          name: flink-config-volume
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: logback-console.xml
+            path: logback-console.xml
+          - key: log4j-console.properties
+            path: log4j-console.properties
+          - key: flink-conf.yaml
+            path: flink-conf.yaml
+          name: flink-config-my-first-flink-cluster
+        name: flink-config-volume
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2022-02-11T02:19:20Z"
+    lastUpdateTime: "2022-02-11T02:19:20Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2022-02-11T02:19:18Z"
+    lastUpdateTime: "2022-02-11T02:19:20Z"
+    message: ReplicaSet "my-first-flink-cluster-6f8589cf4c" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 1
+  readyReplicas: 1
+  replicas: 1
+  updatedReplicas: 1
+  
+  
+my-first-flink-cluster-6f8589cf4c
+  
+  
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  annotations:
+    deployment.kubernetes.io/desired-replicas: "1"
+    deployment.kubernetes.io/max-replicas: "2"
+    deployment.kubernetes.io/revision: "1"
+  creationTimestamp: "2022-02-11T02:19:18Z"
+  generation: 1
+  labels:
+    app: my-first-flink-cluster
+    component: jobmanager
+    pod-template-hash: 6f8589cf4c
+    type: flink-native-kubernetes
+  name: my-first-flink-cluster-6f8589cf4c
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Deployment
+    name: my-first-flink-cluster
+    uid: 8045ea6b-6dce-4e9d-b6fc-b0405125b715
+  resourceVersion: "4778776"
+  uid: 6cbdd3aa-ed2b-403e-b1e3-59291810ad3c
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-first-flink-cluster
+      component: jobmanager
+      pod-template-hash: 6f8589cf4c
+      type: flink-native-kubernetes
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: my-first-flink-cluster
+        component: jobmanager
+        pod-template-hash: 6f8589cf4c
+        type: flink-native-kubernetes
+    spec:
+      containers:
+      - args:
+        - bash
+        - -c
+        - kubernetes-jobmanager.sh kubernetes-session
+        command:
+        - /docker-entrypoint.sh
+        env:
+        - name: _POD_IP_ADDRESS
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        image: apache/flink:1.14.3-scala_2.11
+        imagePullPolicy: IfNotPresent
+        name: flink-main-container
+        ports:
+        - containerPort: 8081
+          name: rest
+          protocol: TCP
+        - containerPort: 6123
+          name: jobmanager-rpc
+          protocol: TCP
+        - containerPort: 6124
+          name: blobserver
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1600Mi
+          requests:
+            cpu: "1"
+            memory: 1600Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/flink/conf
+          name: flink-config-volume
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: logback-console.xml
+            path: logback-console.xml
+          - key: log4j-console.properties
+            path: log4j-console.properties
+          - key: flink-conf.yaml
+            path: flink-conf.yaml
+          name: flink-config-my-first-flink-cluster
+        name: flink-config-volume
+status:
+  availableReplicas: 1
+  fullyLabeledReplicas: 1
+  observedGeneration: 1
+  readyReplicas: 1
+  replicas: 1
+
+
+
+
+
+#
